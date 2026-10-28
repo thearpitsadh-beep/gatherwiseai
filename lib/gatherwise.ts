@@ -33,3 +33,15 @@ export const planningProgress = (event: Event) => {
   if (event.tasks.length === 0) return 0
   return Math.round((event.tasks.filter(task => task.status === 'done').length / event.tasks.length) * 100)
 }
+
+export const pendingGuests = (event: Event) => event.guestsList.filter(guest => guest.rsvp === 'Pending').length
+export const confirmedGuests = (event: Event) => event.guestsList.filter(guest => guest.rsvp === 'Confirmed').length
+export const overdueTasks = (event: Event, today = new Date()) => event.tasks.filter(task => task.status !== 'done' && daysUntil(task.due, today) < 0)
+export const sortedTasks = (event: Event) => [...event.tasks].sort((a, b) => a.due.localeCompare(b.due))
+export const isOverBudget = (event: Event) => totalActual(event) > event.budget
+export const normalizeExpense = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100
+export const addExpenseToFirstCategory = (event: Event, amount: number) => {
+  if (!Number.isFinite(amount) || amount <= 0) return event
+  const budgets = event.budgets.map((item, index) => index === 0 ? { ...item, actual: normalizeExpense(item.actual + amount) } : item)
+  return { ...event, budgets }
+}
