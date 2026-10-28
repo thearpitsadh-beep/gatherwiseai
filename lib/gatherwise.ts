@@ -20,6 +20,16 @@ export const demoEvent: Event = {
 }
 
 export const money = (value: number, currency = 'INR') => new Intl.NumberFormat('en-IN', { style: 'currency', currency, maximumFractionDigits: 0 }).format(value)
-export const daysUntil = (date: string) => Math.ceil((new Date(date).getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000)
+export const daysUntil = (date: string, today = new Date()) => {
+  const target = new Date(`${date}T00:00:00`)
+  const start = new Date(today)
+  start.setHours(0, 0, 0, 0)
+  return Number.isNaN(target.getTime()) ? 0 : Math.ceil((target.getTime() - start.getTime()) / 86400000)
+}
 export const totalEstimated = (event: Event) => event.budgets.reduce((sum, item) => sum + item.estimated, 0)
 export const totalActual = (event: Event) => event.budgets.reduce((sum, item) => sum + item.actual, 0)
+export const remainingBudget = (event: Event) => event.budget - totalActual(event)
+export const planningProgress = (event: Event) => {
+  if (event.tasks.length === 0) return 0
+  return Math.round((event.tasks.filter(task => task.status === 'done').length / event.tasks.length) * 100)
+}
