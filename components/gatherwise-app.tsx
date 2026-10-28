@@ -26,6 +26,7 @@ function Metric({ label, value, detail, accent }: { label: string; value: string
 
 export default function GatherwiseApp() {
   const [events, setEvents] = useState<Event[]>([])
+  const [eventsLoaded, setEventsLoaded] = useState(false)
   const [activeId, setActiveId] = useState('')
   const [section, setSection] = useState<Section>('overview')
   const [showCreate, setShowCreate] = useState(false)
@@ -36,9 +37,9 @@ export default function GatherwiseApp() {
   const [profileName, setProfileName] = useState('')
   const [showProfile, setShowProfile] = useState(false)
 
-  useEffect(() => { const saved = loadEvents(); setEvents(saved); if (saved[0]) setActiveId(saved[0].id); setProfileName(window.localStorage.getItem(profileKey) || '') }, [])
+  useEffect(() => { const saved = loadEvents(); setEvents(saved); if (saved[0]) setActiveId(saved[0].id); setProfileName(window.localStorage.getItem(profileKey) || ''); setEventsLoaded(true) }, [])
   useEffect(() => { if (profileName.trim()) window.localStorage.setItem(profileKey, profileName.trim()) }, [profileName])
-  useEffect(() => { if (events.length) window.localStorage.setItem(storageKey, JSON.stringify(events)) }, [events])
+  useEffect(() => { if (!eventsLoaded) return; try { window.localStorage.setItem(storageKey, JSON.stringify(events)) } catch { /* Storage may be unavailable or full; keep the in-memory session usable. */ } }, [events, eventsLoaded])
   const event = events.find(item => item.id === activeId)
   const estimated = event ? totalEstimated(event) : 0
   const actual = event ? totalActual(event) : 0
