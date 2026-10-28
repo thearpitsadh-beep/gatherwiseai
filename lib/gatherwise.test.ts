@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { demoEvent, daysUntil, planningProgress, remainingBudget, totalActual, totalEstimated } from './gatherwise'
+import { addExpenseToFirstCategory, confirmedGuests, demoEvent, daysUntil, isOverBudget, overdueTasks, pendingGuests, planningProgress, remainingBudget, sortedTasks, totalActual, totalEstimated } from './gatherwise'
 
 describe('gatherwise domain calculations', () => {
   it('totals estimated and actual budget values', () => {
@@ -27,5 +27,28 @@ describe('gatherwise domain calculations', () => {
     expect(daysUntil('2026-10-28', today)).toBe(0)
     expect(daysUntil('2026-11-08', today)).toBe(11)
     expect(daysUntil('not-a-date', today)).toBe(0)
+  })
+
+  it('tracks guest response counts and overdue tasks', () => {
+    const event = { ...demoEvent, tasks: [
+      { ...demoEvent.tasks[0], due: '2026-10-01', status: 'todo' as const },
+      { ...demoEvent.tasks[1], due: '2026-11-21', status: 'todo' as const },
+    ] }
+    expect(confirmedGuests(event)).toBe(2)
+    expect(pendingGuests(event)).toBe(1)
+    expect(overdueTasks(event, new Date('2026-10-28T12:00:00'))).toHaveLength(1)
+  })
+
+  it('sorts tasks without mutating the event', () => {
+    const event = { ...demoEvent, tasks: [demoEvent.tasks[1], demoEvent.tasks[0]] }
+    expect(sortedTasks(event).map(task => task.id)).toEqual(['t1', 't2'])
+    expect(event.tasks.map(task => task.id)).toEqual(['t2', 't1'])
+  })
+
+  it('normalizes valid expenses and flags overspending', () => {
+    const updated = addExpenseToFirstCategory({ ...demoEvent, budget: 100 }, 100.105)
+    expect(updated.budgets[0].actual).toBe(100.11)
+    expect(isOverBudget(updated)).toBe(true)
+    expect(addExpenseToFirstCategory(demoEvent, -10)).toBe(demoEvent)
   })
 })

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { CalendarDays, Check, ChevronDown, CircleHelp, ClipboardList, Download, Flower2, LayoutDashboard, Menu, Plus, Sparkles, Trash2, Users, WalletCards, X } from 'lucide-react'
-import { demoEvent, daysUntil, Event, Guest, Vendor, money, planningProgress, remainingBudget, Section, totalActual, totalEstimated } from '@/lib/gatherwise'
+import { addExpenseToFirstCategory, confirmedGuests, demoEvent, daysUntil, Event, Guest, Vendor, money, pendingGuests, planningProgress, remainingBudget, Section, totalActual, totalEstimated } from '@/lib/gatherwise'
 
 const storageKey = 'gatherwise.events.v1'
 const profileKey = 'gatherwise.profile.v1'
@@ -45,7 +45,7 @@ export default function GatherwiseApp() {
   const actual = event ? totalActual(event) : 0
   const completed = event ? event.tasks.filter(task => task.status === 'done').length : 0
   const progress = event ? planningProgress(event) : 0
-  const pending = event?.guestsList.filter(guest => guest.rsvp === 'Pending').length ?? 0
+  const pending = event ? pendingGuests(event) : 0
   const days = event ? daysUntil(event.date) : 0
 
   const updateEvent = (patch: Partial<Event>) => setEvents(current => current.map(item => item.id === activeId ? { ...item, ...patch } : item))
@@ -53,7 +53,7 @@ export default function GatherwiseApp() {
   const generatePlan = () => { if (!event) return; updateEvent({ generated: true, tasks: [...event.tasks, { id: `t-${Date.now()}`, title: 'Review your personalised plan', due: new Date().toISOString().slice(0, 10), status: 'todo', priority: 'High' }] }); setNotice('Plan ready. This demo uses a local planning template because no AI provider is configured.'); setSection('plan'); setTimeout(() => setNotice(''), 4500) }
   const exportJson = () => { if (!event) return; const blob = new Blob([JSON.stringify(event, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${event.name.toLowerCase().replaceAll(' ', '-')}.json`; a.click(); URL.revokeObjectURL(url) }
   const addGuest = () => { if (!event || !newGuest.trim()) return; const guest: Guest = { id: `g-${Date.now()}`, name: newGuest.trim(), party: 1, rsvp: 'Pending' }; updateEvent({ guestsList: [...event.guestsList, guest] }); setNewGuest('') }
-  const addExpense = () => { const amount = Number(newExpense); if (!event || !Number.isFinite(amount) || amount <= 0) return; const next = event.budgets.map((item, index) => index === 0 ? { ...item, actual: item.actual + amount } : item); updateEvent({ budgets: next }); setNewExpense(''); setNotice('Expense added to Venue.'); setTimeout(() => setNotice(''), 2500) }
+  const addExpense = () => { const amount = Number(newExpense); if (!event || !Number.isFinite(amount) || amount <= 0) return; updateEvent({ budgets: addExpenseToFirstCategory(event, amount).budgets }); setNewExpense(''); setNotice('Expense added to Venue.'); setTimeout(() => setNotice(''), 2500) }
   const toggleTask = (id: string) => event && updateEvent({ tasks: event.tasks.map(task => task.id === id ? { ...task, status: task.status === 'done' ? 'todo' : 'done' } : task) })
 
   if (!event) return <div className="empty-app"><div className="brand-lockup"><span className="brand-icon" aria-hidden="true"><span className="brand-monogram">G</span><span className="brand-stem" /></span><span>GatherWise <em>AI</em></span></div><h1>Plan the moments<br /><i>you’ll remember.</i></h1><p>Bring your people, priorities and budget together in one thoughtful workspace.</p><button className="button button-primary" onClick={() => setShowCreate(true)}><Plus size={17} /> Create your first event</button><button className="button button-ghost" onClick={loadDemo}>Load a wedding demo</button>{showCreate && <CreateModal onCreate={(created) => { setEvents([created]); setActiveId(created.id); setShowCreate(false) }} onClose={() => setShowCreate(false)} />}</div>
